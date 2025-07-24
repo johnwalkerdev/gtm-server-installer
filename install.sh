@@ -416,7 +416,7 @@ EOL
 cat > "${PROJECT_DIR}/gtm-${PROJECT_NAME}/gtag-server.env" << EOL
 CONTAINER_CONFIG=${CONTAINER_CONFIG}
 RUN_AS_PREVIEW_SERVER=false
-PREVIEW_SERVER_URL=https://${PREVIEW_DOMAIN}
+PREVIEW_SERVER_URL=http://gtag-preview:8080
 EOL
 
 # Create preview container environment file
