@@ -1,257 +1,243 @@
-# GTM Server-Side Installer
+# GTM Server-Side Complete Installer
 
-Automatic installer for Google Tag Manager Server-Side Container with multi-project support.
+🚀 **Fully automated installer** for Google Tag Manager Server-Side Container with **automatic dependency installation** and multi-project support.
 
-## ⚡ Quick Installation
+## ⚡ One-Command Installation
 
-### **Method 1: Direct Installation (Recommended)**
+### **Complete Installation (Installs everything automatically)**
 ```bash
 curl -s https://raw.githubusercontent.com/johnwalkerdev/gtm-server-installer/main/install.sh | sudo bash
 ```
 
-### **Method 2: Manual Download (If method 1 has issues)**
+### **Alternative: Manual Download**
 ```bash
 # Download the script
 wget https://raw.githubusercontent.com/johnwalkerdev/gtm-server-installer/main/install.sh
 
-# View script content (optional - for debugging)
-head -50 install.sh
-
-# Make executable
+# Make executable and run
 chmod +x install.sh
-
-# Execute
 sudo ./install.sh
 ```
 
-### **Method 3: Clone Repository**
+## 🎯 What This Installer Does Automatically
+
+### **1. 🔧 Installs All Dependencies:**
+- ✅ **Docker** (latest version with proper setup)
+- ✅ **Docker Compose** (for container orchestration)
+- ✅ **Caddy Web Server** (automatic HTTPS/SSL)
+- ✅ **Net Tools** (for port checking)
+- ✅ **Essential packages** (curl, wget, etc.)
+
+### **2. 🚀 Configures GTM Environment:**
+- ✅ Creates organized project structure
+- ✅ Deploys Docker containers with healthchecks
+- ✅ Sets up automatic SSL certificates
+- ✅ Configures reverse proxy
+- ✅ Generates management scripts
+
+### **3. ✨ Provides Management Tools:**
+- ✅ Project management scripts
+- ✅ Automatic container monitoring
+- ✅ Log management
+- ✅ Easy restart/stop commands
+
+## 📋 Supported Operating Systems
+
+- ✅ **Ubuntu** (18.04, 20.04, 22.04, 24.04)
+- ✅ **Debian** (10, 11, 12)
+
+## 🎮 Installation Process
+
+### **Step 1: Automatic Dependency Installation**
+The installer will automatically detect and install:
 ```bash
-git clone https://github.com/johnwalkerdev/gtm-server-installer.git
-cd gtm-server-installer
-sudo ./install.sh
+=== INSTALLING DEPENDENCIES ===
+This installer will automatically install all required dependencies:
+• Docker
+• Docker Compose  
+• Caddy Web Server
+• Net Tools
+
+Continue with automatic dependency installation? (y/N):
 ```
 
-## 🔧 Prerequisites:
+### **Step 2: Project Configuration**
+You'll be asked for:
 
-1. Ubuntu/Debian server
-2. Docker and Docker Compose installed
-3. Caddy installed
-4. Base domain pointing to your server
+1. **Project name** (e.g., `contaideal`)
+   - Only letters, numbers, and hyphens
+   - 3-63 characters
+   - Must be unique
 
-**Quick command to install dependencies:**
+2. **Base domain** (e.g., `huskycontent.com`)
+   - Your main domain pointing to the server
+   - No subdomains
+
+3. **GTM Container Configuration**
+   - Long base64 string from Google Tag Manager
+   - Get it from Admin → Container Settings
+
+### **Step 3: Automatic Setup**
+The installer will:
+- Create project directories
+- Configure Docker containers
+- Set up SSL certificates
+- Test connectivity
+- Generate management tools
+
+## 🌐 Generated URLs
+
+The installer automatically creates:
+- **Main Server:** `https://gtm-[project].[domain]`
+- **Preview Server:** `https://preview-gtm-[project].[domain]`
+
+**Example:**
+- Project: `contaideal`
+- Domain: `huskycontent.com`
+- **Main:** `https://gtm-contaideal.huskycontent.com`
+- **Preview:** `https://preview-gtm-contaideal.huskycontent.com`
+
+## 🛠️ Post-Installation Management
+
+### **Project Management Script**
 ```bash
-# Docker
-curl -fsSL https://get.docker.com | sh
-
-# Docker Compose and Caddy
-apt update && apt install -y docker-compose caddy net-tools
-```
-
-## 🚀 What the installer does:
-
-1. ✅ Checks dependencies and available ports
-2. 📁 Creates organized structure for your project
-3. 🐳 Configures Docker containers with healthchecks
-4. 🌐 Sets up automatic SSL via Caddy
-5. 🔧 Generates management scripts
-6. 🧪 Tests container connectivity
-
-## 📝 During installation you will provide:
-
-1. **Project name** (e.g., contaideal) - only letters, numbers, and hyphens
-2. **Base domain** (e.g., huskycontent.com) - your main domain
-3. **Container Configuration** - long string from Google Tag Manager
-
-### 🔍 How to get Container Configuration:
-1. Access [Google Tag Manager](https://tagmanager.google.com)
-2. Select your workspace (server-side container)
-3. Go to **Admin** → **Container Settings**
-4. Copy the value from **"Container Configuration"** field
-
-## 🌐 The installer will create:
-
-- **Main URL:** `https://gtm-[project].[your-domain]`
-- **Preview URL:** `https://preview-gtm-[project].[your-domain]`
-
-**Example with project "contaideal" and domain "huskycontent.com":**
-- Main: `https://gtm-contaideal.huskycontent.com`
-- Preview: `https://preview-gtm-contaideal.huskycontent.com`
-
-## 🛠️ Management Scripts
-
-After installation, you'll have access to the following scripts:
-
-### **Individual Project Management:**
-```bash
-# Go to project directory
+# Navigate to your project
 cd /opt/[project]_gtm
 
 # Available commands
 ./manage.sh start    # Start containers
-./manage.sh stop     # Stop containers
+./manage.sh stop     # Stop containers  
 ./manage.sh restart  # Restart containers
 ./manage.sh logs     # View logs
-./manage.sh status   # View status
+./manage.sh status   # Check status
 ```
 
-### **Update Projects:**
+### **System-Wide Commands**
 ```bash
+# View all GTM containers
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep gtag
+
+# Update all projects  
 curl -s https://raw.githubusercontent.com/johnwalkerdev/gtm-server-installer/main/update.sh | sudo bash
-```
 
-### **Uninstall Project:**
-```bash
+# Uninstall a project
 curl -s https://raw.githubusercontent.com/johnwalkerdev/gtm-server-installer/main/uninstall.sh | sudo bash
 ```
 
-## 📋 Useful Commands
+## 🔒 Security Features
 
-### View status of all GTM containers
+- ✅ **Automatic HTTPS** via Let's Encrypt
+- ✅ **Container isolation** with health monitoring
+- ✅ **Log rotation** to prevent disk issues
+- ✅ **Input validation** for all user inputs
+- ✅ **Automatic backups** of configurations
+
+## 📊 Multi-Project Support
+
+Install multiple GTM projects on the same server:
+
 ```bash
-docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep gtag
-```
+# Project 1
+curl -s https://raw.githubusercontent.com/johnwalkerdev/gtm-server-installer/main/install.sh | sudo bash
+# Name: contaideal → https://gtm-contaideal.yourdomain.com
 
-### View specific logs
-```bash
-# Main container
-docker logs -f gtag-server-[project]
+# Project 2  
+curl -s https://raw.githubusercontent.com/johnwalkerdev/gtm-server-installer/main/install.sh | sudo bash
+# Name: company2 → https://gtm-company2.yourdomain.com
 
-# Preview container
-docker logs -f gtag-preview-[project]
-```
-
-### Restart specific containers
-```bash
-docker restart gtag-server-[project] gtag-preview-[project]
-```
-
-### Check Caddy configuration
-```bash
-systemctl status caddy
-cat /etc/caddy/Caddyfile
+# Each project runs independently with its own containers and URLs
 ```
 
 ## ❓ Troubleshooting
 
-### **Installation error with curl:**
-Use the manual download method:
+### **Installation Issues**
 ```bash
+# If curl installation fails, try manual download:
 wget https://raw.githubusercontent.com/johnwalkerdev/gtm-server-installer/main/install.sh
 chmod +x install.sh
 sudo ./install.sh
+
+# Check system compatibility:
+cat /etc/os-release
 ```
 
-### **If preview doesn't work:**
-- Clear browser cache
-- Restart Tag Assistant
-- Check logs: `./manage.sh logs`
-- Test preview URL directly
-
-### **If you get 502 error:**
-- Check if containers are running: `docker ps`
-- Check logs: `./manage.sh logs`
-- Check if Caddy is running: `systemctl status caddy`
-- Test ports locally: `curl http://localhost:10100/healthz`
-
-### **Ports in use:**
+### **Container Issues**
 ```bash
-# Check what's using the ports
+# Check container status
+cd /opt/[project]_gtm && ./manage.sh status
+
+# View detailed logs
+cd /opt/[project]_gtm && ./manage.sh logs
+
+# Restart containers
+cd /opt/[project]_gtm && ./manage.sh restart
+```
+
+### **SSL Certificate Issues**
+```bash
+# Check Caddy status
+systemctl status caddy
+
+# View Caddy logs
+journalctl -u caddy -f
+
+# Reload Caddy configuration
+systemctl reload caddy
+```
+
+### **Port Conflicts**
+```bash
+# Check what's using GTM ports
 netstat -tuln | grep -E ':(10100|10101)'
 
 # Stop conflicting containers
 docker stop $(docker ps -q --filter "publish=10100-10101")
 ```
 
-### **SSL issues:**
-```bash
-# Check Caddy logs
-journalctl -u caddy -f
-
-# Force certificate renewal
-systemctl reload caddy
-```
-
-## 📄 File Structure
-
-The installer creates the following structure:
+## 📁 File Structure
 
 ```
 /opt/[project]_gtm/
-├── project.conf              # Project configuration
-├── manage.sh                 # Management script
-├── logs/                     # Logs directory
+├── project.conf                    # Project configuration
+├── manage.sh                       # Management script
+├── logs/                          # Log directory
 ├── gtm-[project]/
-│   ├── docker-compose.yml    # Main container
-│   └── gtag-server.env       # Environment variables
+│   ├── docker-compose.yml         # Main container config
+│   └── gtag-server.env            # Environment variables
 └── gtm-preview-[project]/
-    ├── docker-compose.yml    # Preview container
-    └── gtag-preview-server.env
+    ├── docker-compose.yml         # Preview container config
+    └── gtag-preview-server.env    # Environment variables
 ```
 
-## 🔒 Security
+## 🆘 Support & Documentation
 
-- ✅ Isolated containers with healthchecks
-- ✅ Automatic SSL via Let's Encrypt
-- ✅ Logs with automatic rotation
-- ✅ Automatic configuration backup
-- ✅ User input validation
+- 📖 **Full Documentation:** Read this README completely
+- 🐛 **Report Bugs:** [GitHub Issues](https://github.com/johnwalkerdev/gtm-server-installer/issues)
+- 💡 **Feature Requests:** [GitHub Discussions](https://github.com/johnwalkerdev/gtm-server-installer/discussions)
+- 📧 **Support:** Through GitHub issues only
 
-## 📊 Multiple Projects
+## ⭐ Key Features
 
-This installer supports multiple GTM projects on the same server:
-
-```bash
-# Project 1
-curl -s https://raw.githubusercontent.com/johnwalkerdev/gtm-server-installer/main/install.sh | sudo bash
-# Name: contaideal
-
-# Project 2  
-curl -s https://raw.githubusercontent.com/johnwalkerdev/gtm-server-installer/main/install.sh | sudo bash
-# Name: company2
-
-# Each project will have its own URLs and containers
-```
-
-## 🆘 Support
-
-- 📖 **Documentation:** Read this README completely
-- 🐛 **Bugs:** [Open an issue](https://github.com/johnwalkerdev/gtm-server-installer/issues)
-- 💡 **Suggestions:** [GitHub Discussions](https://github.com/johnwalkerdev/gtm-server-installer/discussions)
-- 📧 **Contact:** Through GitHub issues
-
-## 📝 Changelog
-
-### v2.0
-- ✅ Robust input validations
-- ✅ Port availability checking
-- ✅ Update and uninstall scripts
-- ✅ Container healthchecks
-- ✅ Automatic configuration backup
-- ✅ Improved management script
-
-### v1.0
-- ✅ Basic GTM Server-Side installation
-- ✅ Automatic Caddy configuration
-- ✅ Multi-project support
+- **🚀 Zero-Configuration:** Installs everything automatically
+- **🔐 Production-Ready:** Automatic HTTPS, monitoring, logging
+- **📦 Multi-Project:** Run multiple GTM instances on one server
+- **🛠️ Easy Management:** Simple commands for daily operations
+- **🔄 Auto-Updates:** Built-in update system
+- **💾 Safe Backups:** Automatic configuration backups
+- **🖥️ OS Detection:** Supports Ubuntu and Debian automatically
 
 ---
 
-## 🌟 Features
+## 🚀 Quick Start
 
-- **Zero-config SSL** - Automatic HTTPS certificates
-- **Multi-project support** - Run multiple GTM instances
-- **Health monitoring** - Built-in container healthchecks
-- **Easy management** - Simple scripts for daily operations
-- **Backup system** - Automatic configuration backups
-- **Production ready** - Optimized for server environments
+**New to GTM Server-Side?** Just run this command on your Ubuntu/Debian server:
 
-## 📖 How it works
+```bash
+curl -s https://raw.githubusercontent.com/johnwalkerdev/gtm-server-installer/main/install.sh | sudo bash
+```
 
-1. **Validation Phase**: Checks all prerequisites and validates user inputs
-2. **Setup Phase**: Creates directory structure and configuration files
-3. **Container Phase**: Deploys Docker containers with proper networking
-4. **Proxy Phase**: Configures Caddy reverse proxy with SSL
-5. **Testing Phase**: Verifies container health and connectivity
-6. **Completion**: Provides management tools and usage instructions
+The installer will guide you through everything! 🎉
 
-Ready to get started? Run the installation command above! 🚀
+**Requirements:** Just a clean Ubuntu/Debian server with your domain pointing to it. Everything else is installed automatically.
+
+Ready to get started? Copy the command above and run it on your server! 🚀
