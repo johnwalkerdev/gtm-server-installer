@@ -172,15 +172,42 @@ install_caddy() {
     fi
 }
 
-# Check if port is in use
-check_port() {
-    if netstat -tuln | grep ":$1 " > /dev/null 2>&1; then
-        echo -e "${RED}❌ Port $1 is already in use${NC}"
-        netstat -tuln | grep ":$1 "
-        exit 1
-    else
-        echo -e "${GREEN}✓ Port $1 available${NC}"
+# Find next available port starting from a base port
+find_available_port() {
+    local base_port=$1
+    local port=$base_port
+    
+    while netstat -tuln | grep ":$port " > /dev/null 2>&1; do
+        ((port++))
+        if [ $port -gt $((base_port + 100)) ]; then
+            echo -e "${RED}❌ Could not find available port in range ${base_port}-$((base_port + 100))${NC}"
+            exit 1
+        fi
+    done
+    
+    echo $port
+}
+
+# Check existing projects and show them
+show_existing_projects() {
+    echo -e "${BLUE}Existing GTM projects on this server:${NC}"
+    local found_projects=false
+    
+    for dir in /opt/*_gtm; do
+        if [ -d "$dir" ]; then
+            project_name=$(basename "$dir" | sed 's/_gtm$//')
+            if [ -f "${dir}/project.conf" ]; then
+                source "${dir}/project.conf"
+                echo -e "${GREEN}• $project_name${NC} - Main: https://${MAIN_DOMAIN} (Port: ${MAIN_PORT})"
+                found_projects=true
+            fi
+        fi
+    done
+    
+    if [ "$found_projects" = false ]; then
+        echo -e "${YELLOW}No existing projects found${NC}"
     fi
+    echo ""
 }
 
 # Function to validate project name
@@ -248,11 +275,17 @@ install_docker_compose
 # Install Caddy
 install_caddy
 
-echo -e "\n${BLUE}Checking ports...${NC}"
-check_port 10100
-check_port 10101
-
 echo -e "\n${GREEN}✨ All dependencies installed successfully!${NC}"
+
+# Show existing projects
+show_existing_projects
+
+# Find available ports automatically
+echo -e "${BLUE}Finding available ports...${NC}"
+MAIN_PORT=$(find_available_port 10100)
+PREVIEW_PORT=$(find_available_port $((MAIN_PORT + 1)))
+
+echo -e "${GREEN}✓ Found available ports: Main: $MAIN_PORT, Preview: $PREVIEW_PORT${NC}"
 
 # Collect project information
 echo -e "\n${BLUE}=== PROJECT CONFIGURATION ===${NC}"
@@ -310,8 +343,8 @@ PREVIEW_DOMAIN="preview-gtm-${PROJECT_NAME}.${BASE_DOMAIN}"
 # Show summary before continuing
 echo -e "\n${BLUE}=== CONFIGURATION SUMMARY ===${NC}"
 echo -e "📁 Project: ${PROJECT_NAME}"
-echo -e "🌐 Main domain: https://${MAIN_DOMAIN}"
-echo -e "🔍 Preview domain: https://${PREVIEW_DOMAIN}"
+echo -e "🌐 Main domain: https://${MAIN_DOMAIN} (Port: $MAIN_PORT)"
+echo -e "🔍 Preview domain: https://${PREVIEW_DOMAIN} (Port: $PREVIEW_PORT)"
 echo -e "📦 Directory: /opt/${PROJECT_NAME}_gtm"
 echo ""
 read -p "Continue installation? (y/N): " -n 1 -r
@@ -344,7 +377,7 @@ services:
     env_file:
       - ./gtag-server.env
     ports:
-      - '10100:8080'
+      - '${MAIN_PORT}:8080'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
       interval: 30s
@@ -367,7 +400,7 @@ services:
     env_file:
       - ./gtag-preview-server.env
     ports:
-      - '10101:8080'
+      - '${PREVIEW_PORT}:8080'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
       interval: 30s
@@ -402,12 +435,12 @@ if [ -f /etc/caddy/Caddyfile ] && grep -q "# GTM Projects" /etc/caddy/Caddyfile;
 # ${PROJECT_NAME} - GTM Server-Side
 ${MAIN_DOMAIN} {
     header Service-Worker-Allowed "/"
-    reverse_proxy localhost:10100
+    reverse_proxy localhost:${MAIN_PORT}
 }
 
 ${PREVIEW_DOMAIN} {
     header Service-Worker-Allowed "/"
-    reverse_proxy localhost:10101
+    reverse_proxy localhost:${PREVIEW_PORT}
 }
 EOL
 else
@@ -418,12 +451,12 @@ else
 # ${PROJECT_NAME} - GTM Server-Side
 ${MAIN_DOMAIN} {
     header Service-Worker-Allowed "/"
-    reverse_proxy localhost:10100
+    reverse_proxy localhost:${MAIN_PORT}
 }
 
 ${PREVIEW_DOMAIN} {
     header Service-Worker-Allowed "/"
-    reverse_proxy localhost:10101
+    reverse_proxy localhost:${PREVIEW_PORT}
 }
 EOL
 fi
@@ -442,15 +475,15 @@ test_containers() {
     echo -e "${BLUE}Testing containers...${NC}"
     sleep 15
     
-    if curl -f http://localhost:10100/healthz > /dev/null 2>&1; then
-        echo -e "${GREEN}✓ Main container responding${NC}"
+    if curl -f http://localhost:${MAIN_PORT}/healthz > /dev/null 2>&1; then
+        echo -e "${GREEN}✓ Main container responding on port ${MAIN_PORT}${NC}"
     else
         echo -e "${RED}❌ Main container has issues${NC}"
         echo -e "${YELLOW}Check logs: cd ${PROJECT_DIR}/gtm-${PROJECT_NAME} && docker-compose logs${NC}"
     fi
     
-    if curl -f http://localhost:10101/healthz > /dev/null 2>&1; then
-        echo -e "${GREEN}✓ Preview container responding${NC}"
+    if curl -f http://localhost:${PREVIEW_PORT}/healthz > /dev/null 2>&1; then
+        echo -e "${GREEN}✓ Preview container responding on port ${PREVIEW_PORT}${NC}"
     else
         echo -e "${RED}❌ Preview container has issues${NC}"
         echo -e "${YELLOW}Check logs: cd ${PROJECT_DIR}/gtm-preview-${PROJECT_NAME} && docker-compose logs${NC}"
@@ -466,10 +499,10 @@ PROJECT_NAME=${PROJECT_NAME}
 BASE_DOMAIN=${BASE_DOMAIN}
 MAIN_DOMAIN=${MAIN_DOMAIN}
 PREVIEW_DOMAIN=${PREVIEW_DOMAIN}
-MAIN_PORT=10100
-PREVIEW_PORT=10101
+MAIN_PORT=${MAIN_PORT}
+PREVIEW_PORT=${PREVIEW_PORT}
 INSTALL_DATE=$(date '+%Y-%m-%d %H:%M:%S')
-INSTALLER_VERSION=2.0
+INSTALLER_VERSION=2.1
 EOL
 
 # Create management scripts
@@ -502,9 +535,19 @@ case $1 in
     "status")
         echo "Container status:"
         docker ps | grep ${PROJECT_NAME}
+        echo "Main: http://localhost:${MAIN_PORT}/healthz"
+        echo "Preview: http://localhost:${PREVIEW_PORT}/healthz"
+        ;;
+    "info")
+        echo "=== PROJECT INFORMATION ==="
+        echo "Project: ${PROJECT_NAME}"
+        echo "Main URL: https://${MAIN_DOMAIN} (Port: ${MAIN_PORT})"
+        echo "Preview URL: https://${PREVIEW_DOMAIN} (Port: ${PREVIEW_PORT})"
+        echo "Directory: $(pwd)"
+        echo "Installed: ${INSTALL_DATE}"
         ;;
     *)
-        echo "Usage: $0 {start|stop|restart|logs|status}"
+        echo "Usage: $0 {start|stop|restart|logs|status|info}"
         exit 1
         ;;
 esac
@@ -515,13 +558,26 @@ chmod +x "${PROJECT_DIR}/manage.sh"
 echo -e "\n${GREEN}✨ Installation completed successfully!${NC}"
 echo -e "\n${BLUE}=== PROJECT INFORMATION ===${NC}"
 echo -e "📁 Directory: ${PROJECT_DIR}"
-echo -e "🌐 Main container: https://${MAIN_DOMAIN}"
-echo -e "🔍 Preview container: https://${PREVIEW_DOMAIN}"
+echo -e "🌐 Main container: https://${MAIN_DOMAIN} (Port: ${MAIN_PORT})"
+echo -e "🔍 Preview container: https://${PREVIEW_DOMAIN} (Port: ${PREVIEW_PORT})"
 echo -e "🛠️  Management script: ${PROJECT_DIR}/manage.sh"
 
 # Check status
 echo -e "\n${BLUE}Container status:${NC}"
 docker ps | grep "${PROJECT_NAME}"
+
+# Show all projects summary
+echo -e "\n${BLUE}=== ALL GTM PROJECTS ON THIS SERVER ===${NC}"
+for dir in /opt/*_gtm; do
+    if [ -d "$dir" ]; then
+        project_name=$(basename "$dir" | sed 's/_gtm$//')
+        if [ -f "${dir}/project.conf" ]; then
+            source "${dir}/project.conf"
+            status="$(docker ps | grep $project_name > /dev/null && echo '🟢 Running' || echo '🔴 Stopped')"
+            echo -e "${GREEN}• $project_name${NC} - https://${MAIN_DOMAIN} (Port: ${MAIN_PORT}) $status"
+        fi
+    fi
+done
 
 echo -e "\n${YELLOW}⚠️  Next steps:${NC}"
 echo "1. Wait 2-5 minutes for SSL certificates to be generated"
@@ -531,7 +587,7 @@ echo "   - Server Container URL: https://${MAIN_DOMAIN}"
 echo "   - Preview Server URL: https://${PREVIEW_DOMAIN}"
 echo ""
 echo -e "${BLUE}Useful commands:${NC}"
-echo "• Manage project: cd ${PROJECT_DIR} && ./manage.sh {start|stop|restart|logs|status}"
-echo "• View logs: cd ${PROJECT_DIR} && ./manage.sh logs"
-echo "• Status: cd ${PROJECT_DIR} && ./manage.sh status"
+echo "• Manage project: cd ${PROJECT_DIR} && ./manage.sh {start|stop|restart|logs|status|info}"
+echo "• View all projects: docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep gtag"
+echo "• Update projects: curl -s https://raw.githubusercontent.com/johnwalkerdev/gtm-server-installer/main/update.sh | sudo bash"
 echo -e "\n${BLUE}Need help? https://github.com/johnwalkerdev/gtm-server-installer/issues${NC}"
