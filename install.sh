@@ -295,7 +295,7 @@ echo -e "2. Base domain (e.g., yoursite.com)"
 echo -e "3. GTM Container Configuration (long string from Google)\n"
 
 while true; do
-    read -p "Enter project name (e.g., contaideal): " PROJECT_NAME
+    read -p "Enter project name (e.g., mysite): " PROJECT_NAME
     if validate_project_name "$PROJECT_NAME"; then
         # Check if project already exists
         if [ -d "/opt/${PROJECT_NAME}_gtm" ]; then
