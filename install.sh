@@ -188,7 +188,7 @@ find_available_port() {
     echo $port
 }
 
-# Check existing projects and show them
+# Show existing projects
 show_existing_projects() {
     echo -e "${BLUE}Existing GTM projects on this server:${NC}"
     local found_projects=false
@@ -297,7 +297,6 @@ echo -e "3. GTM Container Configuration (long string from Google)\n"
 while true; do
     read -p "Enter project name (e.g., mysite): " PROJECT_NAME
     if validate_project_name "$PROJECT_NAME"; then
-        # Check if project already exists
         if [ -d "/opt/${PROJECT_NAME}_gtm" ]; then
             echo -e "${RED}❌ Project '${PROJECT_NAME}' already exists in /opt/${PROJECT_NAME}_gtm${NC}"
             echo -e "${YELLOW}Choose another name or remove the existing project${NC}"
@@ -354,14 +353,14 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
-# Backup Caddyfile if it exists
+# Backup Caddyfile if exists
 if [ -f /etc/caddy/Caddyfile ]; then
     echo -e "${BLUE}Backing up Caddyfile...${NC}"
     cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.backup.$(date +%Y%m%d_%H%M%S)
 fi
 
 # Create directories
-echo -e "\n${BLUE}Creating structure...${NC}"
+echo -e "\n${BLUE}Creating project structure...${NC}"
 PROJECT_DIR="/opt/${PROJECT_NAME}_gtm"
 mkdir -p "${PROJECT_DIR}/gtm-${PROJECT_NAME}"
 mkdir -p "${PROJECT_DIR}/gtm-preview-${PROJECT_NAME}"
@@ -390,7 +389,7 @@ services:
         max-file: "3"
 EOL
 
-# Create docker-compose for preview
+# Create docker-compose for preview container
 cat > "${PROJECT_DIR}/gtm-preview-${PROJECT_NAME}/docker-compose.yml" << EOL
 services:
   gtag-preview:
@@ -413,23 +412,23 @@ services:
         max-file: "3"
 EOL
 
-# Create main container configuration file
+# Create main container environment file
 cat > "${PROJECT_DIR}/gtm-${PROJECT_NAME}/gtag-server.env" << EOL
 CONTAINER_CONFIG=${CONTAINER_CONFIG}
 RUN_AS_PREVIEW_SERVER=false
 PREVIEW_SERVER_URL=https://${PREVIEW_DOMAIN}
 EOL
 
-# Create preview configuration file
+# Create preview container environment file
 cat > "${PROJECT_DIR}/gtm-preview-${PROJECT_NAME}/gtag-preview-server.env" << EOL
 CONTAINER_CONFIG=${CONTAINER_CONFIG}
 RUN_AS_PREVIEW_SERVER=true
 EOL
 
-# Configure or update Caddy
-echo -e "${BLUE}Configuring Caddy...${NC}"
+# Configure or update Caddyfile
+echo -e "${BLUE}Configuring Caddyfile...${NC}"
 if [ -f /etc/caddy/Caddyfile ] && grep -q "# GTM Projects" /etc/caddy/Caddyfile; then
-    # Add to existing Caddyfile
+    # Append new project config to existing Caddyfile
     cat >> /etc/caddy/Caddyfile << EOL
 
 # ${PROJECT_NAME} - GTM Server-Side
@@ -444,7 +443,7 @@ ${PREVIEW_DOMAIN} {
 }
 EOL
 else
-    # Create new Caddyfile
+    # Create new Caddyfile with GTM project config
     cat > /etc/caddy/Caddyfile << EOL
 # GTM Projects
 
@@ -461,27 +460,27 @@ ${PREVIEW_DOMAIN} {
 EOL
 fi
 
-# Restart Caddy
-echo -e "${BLUE}Restarting Caddy...${NC}"
+# Reload Caddy to apply changes
+echo -e "${BLUE}Reloading Caddy...${NC}"
 systemctl reload caddy
 
-# Start containers
-echo -e "${BLUE}Starting containers...${NC}"
+# Start docker containers
+echo -e "${BLUE}Starting docker containers...${NC}"
 cd "${PROJECT_DIR}/gtm-${PROJECT_NAME}" && docker-compose down && docker-compose up -d
 cd "${PROJECT_DIR}/gtm-preview-${PROJECT_NAME}" && docker-compose down && docker-compose up -d
 
-# Test containers
+# Test containers health endpoint
 test_containers() {
-    echo -e "${BLUE}Testing containers...${NC}"
+    echo -e "${BLUE}Testing containers health...${NC}"
     sleep 15
-    
+
     if curl -f http://localhost:${MAIN_PORT}/healthz > /dev/null 2>&1; then
         echo -e "${GREEN}✓ Main container responding on port ${MAIN_PORT}${NC}"
     else
         echo -e "${RED}❌ Main container has issues${NC}"
         echo -e "${YELLOW}Check logs: cd ${PROJECT_DIR}/gtm-${PROJECT_NAME} && docker-compose logs${NC}"
     fi
-    
+
     if curl -f http://localhost:${PREVIEW_PORT}/healthz > /dev/null 2>&1; then
         echo -e "${GREEN}✓ Preview container responding on port ${PREVIEW_PORT}${NC}"
     else
@@ -492,8 +491,8 @@ test_containers() {
 
 test_containers
 
-# Create project configuration file
-echo -e "\n${BLUE}Saving configuration...${NC}"
+# Save project config
+echo -e "\n${BLUE}Saving project configuration...${NC}"
 cat > "${PROJECT_DIR}/project.conf" << EOL
 PROJECT_NAME=${PROJECT_NAME}
 BASE_DOMAIN=${BASE_DOMAIN}
@@ -505,7 +504,7 @@ INSTALL_DATE=$(date '+%Y-%m-%d %H:%M:%S')
 INSTALLER_VERSION=2.1
 EOL
 
-# Create management scripts
+# Create management script
 cat > "${PROJECT_DIR}/manage.sh" << 'EOL'
 #!/bin/bash
 source project.conf
@@ -562,11 +561,11 @@ echo -e "🌐 Main container: https://${MAIN_DOMAIN} (Port: ${MAIN_PORT})"
 echo -e "🔍 Preview container: https://${PREVIEW_DOMAIN} (Port: ${PREVIEW_PORT})"
 echo -e "🛠️  Management script: ${PROJECT_DIR}/manage.sh"
 
-# Check status
+# Show running containers for this project
 echo -e "\n${BLUE}Container status:${NC}"
 docker ps | grep "${PROJECT_NAME}"
 
-# Show all projects summary
+# Show summary of all GTM projects on this server
 echo -e "\n${BLUE}=== ALL GTM PROJECTS ON THIS SERVER ===${NC}"
 for dir in /opt/*_gtm; do
     if [ -d "$dir" ]; then
@@ -580,14 +579,14 @@ for dir in /opt/*_gtm; do
 done
 
 echo -e "\n${YELLOW}⚠️  Next steps:${NC}"
-echo "1. Wait 2-5 minutes for SSL certificates to be generated"
-echo "2. Test domain access in your browser"
-echo "3. Configure your GTM to use:"
+echo "1. Aguarde 2-5 minutos para geração dos certificados SSL"
+echo "2. Teste os domínios no navegador"
+echo "3. Configure seu GTM para usar:"
 echo "   - Server Container URL: https://${MAIN_DOMAIN}"
 echo "   - Preview Server URL: https://${PREVIEW_DOMAIN}"
 echo ""
-echo -e "${BLUE}Useful commands:${NC}"
-echo "• Manage project: cd ${PROJECT_DIR} && ./manage.sh {start|stop|restart|logs|status|info}"
-echo "• View all projects: docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep gtag"
-echo "• Update projects: curl -s https://raw.githubusercontent.com/johnwalkerdev/gtm-server-installer/main/update.sh | sudo bash"
-echo -e "\n${BLUE}Need help? https://github.com/johnwalkerdev/gtm-server-installer/issues${NC}"
+echo -e "${BLUE}Comandos úteis:${NC}"
+echo "• Gerenciar projeto: cd ${PROJECT_DIR} && ./manage.sh {start|stop|restart|logs|status|info}"
+echo "• Ver projetos ativos: docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep gtag"
+echo "• Atualizar projeto: curl -s https://raw.githubusercontent.com/johnwalkerdev/gtm-server-installer/main/update.sh | sudo bash"
+echo -e "\n${BLUE}Precisa de ajuda? https://github.com/johnwalkerdev/gtm-server-installer/issues${NC}"
