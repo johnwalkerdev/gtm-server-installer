@@ -33,12 +33,31 @@ function find_available_port() {
 }
 
 function ask_to_install_dependencies() {
-    read -rp "Do you want to install dependencies (nginx, certbot, docker-compose)? [y/N]: " answer
-    case $answer in
-        [Yy]*) install_dependencies;;
-        *) echo -e "${YELLOW}Skipping dependency installation...${NC}";;
-    esac
+    read -rp "Do you want to install Nginx? [y/N]: " install_nginx
+    if [[ "$install_nginx" =~ ^[Yy]$ ]]; then
+        echo -e "${GREEN}Installing Nginx...${NC}"
+        apt update && apt install -y nginx
+    else
+        echo -e "${YELLOW}Skipping Nginx installation...${NC}"
+    fi
+
+    read -rp "Do you want to install Docker Compose? [y/N]: " install_compose
+    if [[ "$install_compose" =~ ^[Yy]$ ]]; then
+        echo -e "${GREEN}Installing Docker Compose...${NC}"
+        apt install -y docker-compose
+    else
+        echo -e "${YELLOW}Skipping Docker Compose installation...${NC}"
+    fi
+
+    read -rp "Do you want to install Certbot (for SSL)? [y/N]: " install_certbot
+    if [[ "$install_certbot" =~ ^[Yy]$ ]]; then
+        echo -e "${GREEN}Installing Certbot...${NC}"
+        apt install -y certbot python3-certbot-nginx
+    else
+        echo -e "${YELLOW}Skipping Certbot installation...${NC}"
+    fi
 }
+
 
 function install_dependencies() {
     echo -e "${GREEN}Installing dependencies...${NC}"
