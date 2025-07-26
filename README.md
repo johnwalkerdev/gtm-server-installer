@@ -56,6 +56,11 @@ source /opt/YOUR_PROJECT/.env && sudo bash installer.sh --ssl
 * GTM container config (base64 string)
 * Preview domain (e.g. `gtm-preview.example.com`)
 * Production domain (e.g. `gtm.example.com`)
+* Whether to install:
+
+  * Nginx (once per server)
+  * Docker Compose (once per server)
+  * Certbot (per project if issuing SSL)
 
 ---
 
@@ -94,6 +99,16 @@ No. You will be asked individually whether to install:
 * **Certbot** (can be installed per project to handle SSL)
 
 Answer 'n' to any that are already installed.
+
+### What if Certbot says a certificate already exists?
+
+Certbot may detect existing certificates and prompt to expand them. Just type `E` to confirm.
+
+If you'd like to avoid the prompt entirely, use:
+
+```bash
+certbot --nginx --expand -d your.domain.com -d other.domain.com
+```
 
 ---
 
