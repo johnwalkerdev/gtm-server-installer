@@ -24,6 +24,22 @@ function check_root() {
     fi
 }
 
+function find_available_port() {
+    local port=$1
+    while ss -tuln | grep -q ":$port"; do
+        ((port++))
+    done
+    echo $port
+}
+
+function ask_to_install_dependencies() {
+    read -rp "Do you want to install dependencies (nginx, certbot, docker-compose)? [y/N]: " answer
+    case $answer in
+        [Yy]*) install_dependencies;;
+        *) echo -e "${YELLOW}Skipping dependency installation...${NC}";;
+    esac
+}
+
 function install_dependencies() {
     echo -e "${GREEN}Installing dependencies...${NC}"
     apt update
@@ -32,6 +48,10 @@ function install_dependencies() {
 
 function setup_structure() {
     echo -e "${GREEN}Creating project structure...${NC}"
+    if [ -d "/opt/$PROJECT_NAME" ]; then
+        echo -e "${RED}Directory /opt/$PROJECT_NAME already exists. Aborting to prevent overwrite.${NC}"
+        exit 1
+    fi
     mkdir -p /opt/$PROJECT_NAME/{nginx,logs}
     cd /opt/$PROJECT_NAME
 
@@ -41,8 +61,8 @@ PROJECT_NAME=$PROJECT_NAME
 CONTAINER_CONFIG=$CONTAINER_CONFIG
 PREVIEW_DOMAIN=$PREVIEW_DOMAIN
 PRODUCTION_DOMAIN=$PRODUCTION_DOMAIN
-PREVIEW_PORT=8080
-PRODUCTION_PORT=8081
+PREVIEW_PORT=$PREVIEW_PORT
+PRODUCTION_PORT=$PRODUCTION_PORT
 PREVIEW_URL=https://$PREVIEW_DOMAIN
 PRODUCTION_URL=https://$PRODUCTION_DOMAIN
 LOG_PATH=/opt/$PROJECT_NAME/logs
@@ -60,7 +80,7 @@ services:
     image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
     container_name: ${PROJECT_NAME}-preview
     ports:
-      - "8080:8080"
+      - "${PREVIEW_PORT}:8080"
     environment:
       - CONTAINER_CONFIG=$CONTAINER_CONFIG
       - RUN_AS_PREVIEW_SERVER=true
@@ -72,7 +92,7 @@ services:
     image: gcr.io/cloud-tagging-10302018/gtm-cloud-image:stable
     container_name: ${PROJECT_NAME}-production
     ports:
-      - "8081:8080"
+      - "${PRODUCTION_PORT}:8080"
     environment:
       - CONTAINER_CONFIG=$CONTAINER_CONFIG
       - RUN_AS_PREVIEW_SERVER=false
@@ -94,7 +114,7 @@ server {
     server_name $PREVIEW_DOMAIN;
 
     location / {
-        proxy_pass http://localhost:8080;
+        proxy_pass http://localhost:$PREVIEW_PORT;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -102,7 +122,7 @@ server {
     }
 
     location /healthz {
-        proxy_pass http://localhost:8080/healthz;
+        proxy_pass http://localhost:$PREVIEW_PORT/healthz;
         access_log off;
     }
 }
@@ -114,7 +134,7 @@ server {
     server_name $PRODUCTION_DOMAIN;
 
     location / {
-        proxy_pass http://localhost:8081;
+        proxy_pass http://localhost:$PRODUCTION_PORT;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -122,7 +142,7 @@ server {
     }
 
     location /healthz {
-        proxy_pass http://localhost:8081/healthz;
+        proxy_pass http://localhost:$PRODUCTION_PORT/healthz;
         access_log off;
     }
 }
@@ -162,12 +182,36 @@ prompt_input CONTAINER_CONFIG "Paste your GTM Container Configuration (base64)"
 prompt_input PREVIEW_DOMAIN "Enter your Preview domain (e.g. gtm-preview.example.com)"
 prompt_input PRODUCTION_DOMAIN "Enter your Production domain (e.g. gtm.example.com)"
 
-install_dependencies
+# Find dynamic ports
+BASE_PORT=8080
+PREVIEW_PORT=$(find_available_port $BASE_PORT)
+PRODUCTION_PORT=$(find_available_port $((PREVIEW_PORT + 1)))
+
+ask_to_install_dependencies
 setup_structure
 create_docker_compose
 configure_nginx
 launch_services
 
-echo -e "\n${GREEN}Install complete!${NC}"
-echo -e "\n${YELLOW}Next step: Run this script again with --ssl after DNS is ready:${NC}"
-echo -e "sudo bash installer.sh --ssl"
+echo -e "
+${GREEN}Health check responses:${NC}"
+curl -s -o /dev/null -w "Preview: %{http_code}
+" http://localhost:$PREVIEW_PORT/healthz
+curl -s -o /dev/null -w "Production: %{http_code}
+" http://localhost:$PRODUCTION_PORT/healthz
+
+echo -e "
+${YELLOW}You can re-use the configuration later using:${NC}"
+echo "source /opt/$PROJECT_NAME/.env && sudo bash installer.sh --ssl"
+
+echo -e "
+${GREEN}Install complete!${NC}"
+read -rp "
+Do you want to issue SSL certificates now? [y/N]: " issue_ssl
+if [[ "$issue_ssl" =~ ^[Yy]$ ]]; then
+    setup_ssl
+else
+    echo -e "
+${YELLOW}Next step: Run this script again with --ssl after DNS is ready:${NC}"
+    echo -e "sudo bash installer.sh --ssl"
+fi
