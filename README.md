@@ -52,7 +52,7 @@ source /opt/YOUR_PROJECT/.env && sudo bash installer.sh --ssl
 
 ## 🧪 What you'll be asked
 
-* Project name: `gtm-contaideal`
+* Project name: `gtm-example`
 * GTM container config (base64 string)
 * Preview domain (e.g. `gtm-preview.example.com`)
 * Production domain (e.g. `gtm.example.com`)
@@ -123,10 +123,10 @@ certbot --nginx --expand -d your.domain.com -d other.domain.com
 ## ✅ Example Output
 
 ```
-Enter the project name (e.g. gtm-contaideal): gtm-contaideal
+Enter the project name (e.g. gtm-example): gtm-example
 Paste your GTM Container Configuration (base64): aWQ9R1RNL...
-Enter your Preview domain: gtm-preview.contaideal.com
-Enter your Production domain: gtm.contaideal.com
+Enter your Preview domain: gtm-preview.example.com
+Enter your Production domain: gtm.example.com
 ...
 Install complete!
 Health check responses:
