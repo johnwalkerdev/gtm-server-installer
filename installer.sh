@@ -196,7 +196,7 @@ if [[ "${1:-}" == "--ssl" ]]; then
     exit 0
 fi
 
-prompt_input PROJECT_NAME "Enter the project name (e.g. gtm-contaideal)"
+prompt_input PROJECT_NAME "Enter the project name (e.g. gtm-example)"
 prompt_input CONTAINER_CONFIG "Paste your GTM Container Configuration (base64)"
 prompt_input PREVIEW_DOMAIN "Enter your Preview domain (e.g. gtm-preview.example.com)"
 prompt_input PRODUCTION_DOMAIN "Enter your Production domain (e.g. gtm.example.com)"
