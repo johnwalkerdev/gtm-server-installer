@@ -112,6 +112,32 @@ certbot --nginx --expand -d your.domain.com -d other.domain.com
 
 ---
 
+## 🧹 Uninstall a GTM Project
+
+You can completely remove any installed project using the provided uninstall script.
+
+### 🔧 How to uninstall
+
+1. Download the uninstaller:
+   ```bash
+   curl -O https://raw.githubusercontent.com/johnwalkerdev/gtm-server-installer/main/uninstall.sh
+   chmod +x uninstall.sh
+   ```
+
+2. Run the script:
+   ```bash
+   sudo ./uninstall.sh
+   ```
+
+3. Follow the prompts:
+   - It will list all projects in `/opt` that have a `docker-compose.yml`.
+   - You'll choose the project to remove.
+   - It will stop and remove Docker containers, volumes, and delete the project folder.
+
+> ✅ Only the selected project will be removed. Other projects remain intact.
+
+---
+
 ## 💡 Notes
 
 * Ports are assigned dynamically (starting from 8080)
